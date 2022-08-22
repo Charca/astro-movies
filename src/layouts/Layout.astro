@@ -31,6 +31,7 @@ const { title } = Astro.props as Props;
 
 				const transition = document.createDocumentTransition();
 				const navigationType = getNavigationType(fromPath, toPath)
+				const isBack = isBackNavigation(navigateEvent);
 
 				if (navigationType === 'home-to-movie') {
 					const id = toPath.split('/')[2];
@@ -49,7 +50,7 @@ const { title } = Astro.props as Props;
 									thumbnail.style.pageTransitionTag = '';
 								}
 
-								window.scrollTo(0, 0)
+								document.getElementById('container').scrollTop = 0
 
 								updateTheDOMSomehow(data)
 							})
@@ -64,11 +65,20 @@ const { title } = Astro.props as Props;
             async handler() {
               const response = await fetch('/fragments/MovieList');
               const data = await response.text()
-              // await new Promise(resolve => setTimeout(resolve, 3000));
+							const tempHomePage = document.createElement('div')
 							const moviePoster = document.getElementById(`movie-poster`);
 							let thumbnail
-              transition.start(() => {
 
+							// If the movie poster is not in the home page, removes the transition style so that
+							// the poster doesn't stay on the page while transitioning
+							tempHomePage.innerHTML = data
+							if (!id || !tempHomePage.querySelector(`#movie-poster-${id}`)) {
+								if (moviePoster) {
+									moviePoster.classList.remove('movie-poster');
+								}
+							}
+
+              transition.start(() => {
 								updateTheDOMSomehow(data)
 
 								if (id) {
@@ -76,14 +86,6 @@ const { title } = Astro.props as Props;
 									if (thumbnail) {
 										thumbnail.scrollIntoViewIfNeeded()
 										thumbnail.style.pageTransitionTag = 'movie-poster';
-									} else {
-										// If the movie poster is not in the home page, removes the transition style so that
-										// the poster doesn't stay on the page while transitioning
-										// This doesn't work too well...
-										console.log(moviePoster)
-										if (moviePoster) {
-											moviePoster.classList.remove('movie-poster');
-										}
 									}
 								}
 							}).then(() => {
@@ -96,33 +98,51 @@ const { title } = Astro.props as Props;
 				}
 
 				if (navigationType === 'movie-to-person') {
-					const id = toPath.split('/')[2];
+					const movieId = fromPath.split('/')[2];
+					const personId = toPath.split('/')[2];
+
           navigateEvent.intercept({
             async handler() {
-
-							// Removes the transition style so that the poster doesn't stay on the page
-							// while transitioning
-							const moviePoster = document.getElementById(`movie-poster`);
-							if (moviePoster) {
-								moviePoster.classList.remove('movie-poster');
-							}
-
-							const thumbnail = document.getElementById(`person-photo-${id}`);
-							if (thumbnail) {
-								thumbnail.style.pageTransitionTag = 'person-photo';
-							}
-
-              const response = await fetch('/fragments/PersonDetails/' + id);
+              const response = await fetch('/fragments/PersonDetails/' + personId);
               const data = await response.text();
+							let personThumbnail
+							let moviePoster
+							let movieThumbnail
 
-              transition.start(() => {
-								if (thumbnail) {
-									thumbnail.style.pageTransitionTag = '';
+							if (!isBack) {
+								// Removes the transition style so that the poster doesn't stay on the page
+								// while transitioning
+								moviePoster = document.getElementById(`movie-poster`);
+								if (moviePoster) {
+									moviePoster.classList.remove('movie-poster');
 								}
 
-								window.scrollTo(0, 0)
+								personThumbnail = document.getElementById(`person-photo-${personId}`);
+								if (personThumbnail) {
+									personThumbnail.style.pageTransitionTag = 'person-photo';
+								}
+							}
 
+              transition.start(() => {
 								updateTheDOMSomehow(data)
+
+								if (personThumbnail) {
+									personThumbnail.style.pageTransitionTag = '';
+								}
+
+								if (isBack) {
+									movieThumbnail = document.getElementById(`movie-poster-${movieId}`);
+									if (movieThumbnail) {
+										movieThumbnail.scrollIntoViewIfNeeded()
+										movieThumbnail.style.pageTransitionTag = 'movie-poster';
+									}
+								}
+
+								document.getElementById('container').scrollTop = 0
+							}).then(() => {
+								if (movieThumbnail) {
+									movieThumbnail.style.pageTransitionTag = '';
+								}
 							})
             },
           });
@@ -131,35 +151,55 @@ const { title } = Astro.props as Props;
 				if (navigationType === 'person-to-movie') {
 					const personId = fromPath.split('/')[2];
 					const movieId = toPath.split('/')[2];
+
           navigateEvent.intercept({
 						scroll: 'manual',
             async handler() {
               const response = await fetch('/fragments/MovieDetails/' + movieId);
               const data = await response.text()
 							let thumbnail
+							let moviePoster
+							let movieThumbnail
+
+							if (!isBack) {
+								movieThumbnail = document.getElementById(`movie-poster-${movieId}`);
+								if (movieThumbnail) {
+									movieThumbnail.style.pageTransitionTag = 'movie-poster';
+								}
+							}
+
               transition.start(() => {
-
-								// I could be going from person to movie by going back (which is what I handle now)
-								// or by clicking on a movie, in which case I need to scroll top, and add the
-								// right pageTransitionTag
-								// window.scrollTo(0, 0)
-
-								// I also need to make sure I remove the transition tag to prevent the movie poster
-								// from staying on the screen while the transition is happening
-
 								updateTheDOMSomehow(data)
 
-								if (personId) {
-									thumbnail = document.getElementById(`person-photo-${personId}`);
-									if (thumbnail) {
-										thumbnail.scrollIntoViewIfNeeded()
-										thumbnail.style.pageTransitionTag = 'person-photo';
+								if (isBack) {
+									moviePoster = document.getElementById(`movie-poster`);
+									if (moviePoster) {
+										moviePoster.classList.remove('movie-poster');
+									}
+
+									if (personId) {
+										thumbnail = document.getElementById(`person-photo-${personId}`);
+										if (thumbnail) {
+											thumbnail.scrollIntoViewIfNeeded()
+											thumbnail.style.pageTransitionTag = 'person-photo';
+										}
+									}
+								} else {
+									document.getElementById('container').scrollTop = 0
+
+									if (movieThumbnail) {
+										movieThumbnail.style.pageTransitionTag = '';
 									}
 								}
+
 							}).then(() => {
 								if (thumbnail) {
 									thumbnail.style.pageTransitionTag = '';
 								}
+
+								if (moviePoster) {
+										moviePoster.classList.add('movie-poster');
+									}
 							});
             },
           });
@@ -186,6 +226,18 @@ const { title } = Astro.props as Props;
 				return 'other';
 			}
 
+			function isBackNavigation(navigateEvent) {
+				if (navigateEvent.navigationType === 'push' || navigateEvent.navigationType === 'replace') {
+					return false;
+				}
+				if (
+					navigateEvent.destination.index !== -1 &&
+					navigateEvent.destination.index < navigation.currentEntry.index
+				) {
+					return true;
+				}
+				return false;
+			}
 
       function updateTheDOMSomehow(data) {
         document.getElementById('content').innerHTML = data;
@@ -208,10 +260,14 @@ const { title } = Astro.props as Props;
     </script>
 	</head>
 	<body class="font-sans bg-gray-900 text-white">
-		<Nav />
-		<div id="content">
-			<slot />
+		<div class="h-screen overflow-hidden flex flex-col">
+			<Nav />
+			<div id="container" class="h-full flex-1 overflow-y-auto">
+				<div id="content">
+					<slot />
+				</div>
+				<Footer />
+			</div>
 		</div>
-		<Footer />
 	</body>
 </html>
