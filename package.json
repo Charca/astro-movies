@@ -12,5 +12,8 @@
   "devDependencies": {
     "@astrojs/tailwind": "^1.0.0",
     "astro": "^1.0.6"
+  },
+  "dependencies": {
+    "@astrojs/netlify": "^1.0.1"
   }
 }

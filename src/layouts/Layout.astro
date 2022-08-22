@@ -1,4 +1,5 @@
 ---
+import '../styles/styles.css';
 import Footer from "../components/Footer.astro";
 import Nav from "../components/Nav.astro";
 
@@ -17,10 +18,200 @@ const { title } = Astro.props as Props;
 		<link rel="icon" type="image/x-icon" href="/favicon.ico" />
 		<meta name="generator" content={Astro.generator} />
 		<title>{title}</title>
+		<script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+		<script>
+      navigation.addEventListener('navigate', navigateEvent => {
+        if (shouldNotIntercept(navigateEvent)) return;
+
+        const toUrl = new URL(navigateEvent.destination.url);
+				const toPath = toUrl.pathname;
+				const fromPath = location.pathname;
+
+				if (location.origin !== toUrl.origin) return;
+
+				const transition = document.createDocumentTransition();
+				const navigationType = getNavigationType(fromPath, toPath)
+
+				if (navigationType === 'home-to-movie') {
+					const id = toPath.split('/')[2];
+          navigateEvent.intercept({
+            async handler() {
+							const thumbnail = document.getElementById(`movie-poster-${id}`);
+							if (thumbnail) {
+								thumbnail.style.pageTransitionTag = 'movie-poster';
+							}
+
+              const response = await fetch('/fragments/MovieDetails/' + id);
+              const data = await response.text();
+
+              transition.start(() => {
+								if (thumbnail) {
+									thumbnail.style.pageTransitionTag = '';
+								}
+
+								window.scrollTo(0, 0)
+
+								updateTheDOMSomehow(data)
+							})
+            },
+          });
+				}
+
+				if (navigationType === 'movie-to-home') {
+					const id = fromPath.split('/')[2];
+          navigateEvent.intercept({
+						scroll: 'manual',
+            async handler() {
+              const response = await fetch('/fragments/MovieList');
+              const data = await response.text()
+              // await new Promise(resolve => setTimeout(resolve, 3000));
+							const moviePoster = document.getElementById(`movie-poster`);
+							let thumbnail
+              transition.start(() => {
+
+								updateTheDOMSomehow(data)
+
+								if (id) {
+									thumbnail = document.getElementById(`movie-poster-${id}`);
+									if (thumbnail) {
+										thumbnail.scrollIntoViewIfNeeded()
+										thumbnail.style.pageTransitionTag = 'movie-poster';
+									} else {
+										// If the movie poster is not in the home page, removes the transition style so that
+										// the poster doesn't stay on the page while transitioning
+										// This doesn't work too well...
+										console.log(moviePoster)
+										if (moviePoster) {
+											moviePoster.classList.remove('movie-poster');
+										}
+									}
+								}
+							}).then(() => {
+								if (thumbnail) {
+									thumbnail.style.pageTransitionTag = '';
+								}
+							});
+            },
+          });
+				}
+
+				if (navigationType === 'movie-to-person') {
+					const id = toPath.split('/')[2];
+          navigateEvent.intercept({
+            async handler() {
+
+							// Removes the transition style so that the poster doesn't stay on the page
+							// while transitioning
+							const moviePoster = document.getElementById(`movie-poster`);
+							if (moviePoster) {
+								moviePoster.classList.remove('movie-poster');
+							}
+
+							const thumbnail = document.getElementById(`person-photo-${id}`);
+							if (thumbnail) {
+								thumbnail.style.pageTransitionTag = 'person-photo';
+							}
+
+              const response = await fetch('/fragments/PersonDetails/' + id);
+              const data = await response.text();
+
+              transition.start(() => {
+								if (thumbnail) {
+									thumbnail.style.pageTransitionTag = '';
+								}
+
+								window.scrollTo(0, 0)
+
+								updateTheDOMSomehow(data)
+							})
+            },
+          });
+				}
+
+				if (navigationType === 'person-to-movie') {
+					const personId = fromPath.split('/')[2];
+					const movieId = toPath.split('/')[2];
+          navigateEvent.intercept({
+						scroll: 'manual',
+            async handler() {
+              const response = await fetch('/fragments/MovieDetails/' + movieId);
+              const data = await response.text()
+							let thumbnail
+              transition.start(() => {
+
+								// I could be going from person to movie by going back (which is what I handle now)
+								// or by clicking on a movie, in which case I need to scroll top, and add the
+								// right pageTransitionTag
+								// window.scrollTo(0, 0)
+
+								// I also need to make sure I remove the transition tag to prevent the movie poster
+								// from staying on the screen while the transition is happening
+
+								updateTheDOMSomehow(data)
+
+								if (personId) {
+									thumbnail = document.getElementById(`person-photo-${personId}`);
+									if (thumbnail) {
+										thumbnail.scrollIntoViewIfNeeded()
+										thumbnail.style.pageTransitionTag = 'person-photo';
+									}
+								}
+							}).then(() => {
+								if (thumbnail) {
+									thumbnail.style.pageTransitionTag = '';
+								}
+							});
+            },
+          });
+				}
+      });
+
+			function getNavigationType(fromPath, toPath) {
+				if (fromPath.startsWith('/movies') && toPath === '/') {
+					return 'movie-to-home';
+				}
+
+				if (fromPath === '/' && toPath.startsWith('/movies')) {
+					return 'home-to-movie';
+				}
+
+				if (fromPath.startsWith('/movies') && toPath.startsWith('/people')) {
+					return 'movie-to-person';
+				}
+
+				if (fromPath.startsWith('/people') && toPath.startsWith('/movies')) {
+					return 'person-to-movie';
+				}
+
+				return 'other';
+			}
+
+
+      function updateTheDOMSomehow(data) {
+        document.getElementById('content').innerHTML = data;
+      }
+
+      function shouldNotIntercept(navigationEvent) {
+        return (
+          navigationEvent.canIntercept === false ||
+          // If this is just a hashChange,
+          // just let the browser handle scrolling to the content.
+          navigationEvent.hashChange ||
+          // If this is a download,
+          // let the browser perform the download.
+          navigationEvent.downloadRequest ||
+          // If this is a form submission,
+          // let that go to the server.
+          navigationEvent.formData
+        );
+      }
+    </script>
 	</head>
 	<body class="font-sans bg-gray-900 text-white">
 		<Nav />
-		<slot />
+		<div id="content">
+			<slot />
+		</div>
 		<Footer />
 	</body>
 </html>
