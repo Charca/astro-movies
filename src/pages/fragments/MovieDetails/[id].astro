@@ -110,7 +110,7 @@ const movie = {
             {movie.cast.map(cast => (
                 <div class="mt-8">
                       <a href={`/people/${cast.id}`}>
-                          <img id={`person-photo-${cast.id}`} src={cast.profile_path} alt={cast.name} class="person-thumbnail hover:opacity-75 transition ease-in-out duration-150">
+                          <img id={`person-photo-${cast.id}`} src={cast.profile_path} alt={cast.name} class="thumbnail hover:opacity-75 transition ease-in-out duration-150">
                       </a>
                       <div class="mt-2">
                           <a href={`/people/${cast.id}`} class="text-lg mt-2 hover:text-gray:300">{cast.name}</a>

@@ -52,15 +52,11 @@
   contain: paint;
 }
 
-.movie-thumbnail {
-  contain: paint;
-}
-
 .person-photo {
   page-transition-tag: person-photo;
   contain: paint;
 }
 
-.person-thumbnail {
+.thumbnail {
   contain: paint;
 }
