@@ -15,6 +15,12 @@ export function getNavigationType(fromPath, toPath) {
     return 'person-to-movie'
   }
 
+  // Handle TV scenarios. Same as movie, but:
+  // 1. Need to make sure that root /tv path doesn't break things (no ID)
+  // 2. Need to request the tvlist or tvdetails fragments
+
+  // Handle 'other' transitions if they have a corresponding fragment (for example when navigating between about, movies, and tv)
+
   return 'other'
 }
 
