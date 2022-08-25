@@ -53,6 +53,12 @@ function handleHomeToMovieTransition(navigateEvent, movieId) {
       : '/fragments/MovieDetails'
     const response = await fetch(`${fragmentUrl}/${movieId}`)
     const data = await response.text()
+
+    if (!document.createDocumentTransition) {
+      updateTheDOMSomehow(data)
+      return
+    }
+
     const transition = document.createDocumentTransition()
     const thumbnail = document.getElementById(`movie-poster-${movieId}`)
     if (thumbnail) {
@@ -78,6 +84,12 @@ function handleMovieToHomeTransition(navigateEvent, movieId) {
       : '/fragments/MovieList'
     const response = await fetch(fragmentUrl)
     const data = await response.text()
+
+    if (!document.createDocumentTransition) {
+      updateTheDOMSomehow(data)
+      return
+    }
+
     const transition = document.createDocumentTransition()
     const tempHomePage = document.createElement('div')
     const moviePoster = document.getElementById(`movie-poster`)
@@ -113,9 +125,15 @@ function handleMovieToHomeTransition(navigateEvent, movieId) {
 function handleMovieToPersonTransition(navigateEvent, movieId, personId) {
   const isBack = isBackNavigation(navigateEvent)
   const handler = async () => {
-    const transition = document.createDocumentTransition()
     const response = await fetch('/fragments/PersonDetails/' + personId)
     const data = await response.text()
+
+    if (!document.createDocumentTransition) {
+      updateTheDOMSomehow(data)
+      return
+    }
+
+    const transition = document.createDocumentTransition()
     let personThumbnail
     let moviePoster
     let movieThumbnail
@@ -170,9 +188,15 @@ function handlePersonToMovieTransition(navigateEvent, personId, movieId) {
     const fragmentUrl = useTvFragment(navigateEvent)
       ? '/fragments/TvDetails'
       : '/fragments/MovieDetails'
-    const transition = document.createDocumentTransition()
     const response = await fetch(`${fragmentUrl}/${movieId}`)
     const data = await response.text()
+
+    if (!document.createDocumentTransition) {
+      updateTheDOMSomehow(data)
+      return
+    }
+
+    const transition = document.createDocumentTransition()
     let thumbnail
     let moviePoster
     let movieThumbnail
