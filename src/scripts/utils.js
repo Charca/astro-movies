@@ -3,23 +3,31 @@ export function getNavigationType(fromPath, toPath) {
     return 'movie-to-home'
   }
 
+  if (fromPath === '/tv' && toPath.startsWith('/tv/')) {
+    return 'tv-to-show'
+  }
+
   if (fromPath === '/' && toPath.startsWith('/movies')) {
     return 'home-to-movie'
   }
 
-  if (fromPath.startsWith('/movies') && toPath.startsWith('/people')) {
+  if (fromPath.startsWith('/tv/') && toPath === '/tv') {
+    return 'show-to-tv'
+  }
+
+  if (
+    (fromPath.startsWith('/movies') || fromPath.startsWith('/tv')) &&
+    toPath.startsWith('/people')
+  ) {
     return 'movie-to-person'
   }
 
-  if (fromPath.startsWith('/people') && toPath.startsWith('/movies')) {
+  if (
+    fromPath.startsWith('/people') &&
+    (toPath.startsWith('/movies') || toPath.startsWith('/tv/'))
+  ) {
     return 'person-to-movie'
   }
-
-  // Handle TV scenarios. Same as movie, but:
-  // 1. Need to make sure that root /tv path doesn't break things (no ID)
-  // 2. Need to request the tvlist or tvdetails fragments
-
-  // Handle 'other' transitions if they have a corresponding fragment (for example when navigating between about, movies, and tv)
 
   return 'other'
 }
@@ -53,6 +61,13 @@ export function shouldNotIntercept(navigationEvent) {
     // let that go to the server.
     navigationEvent.formData
   )
+}
+
+export function useTvFragment(navigateEvent) {
+  const toUrl = new URL(navigateEvent.destination.url)
+  const toPath = toUrl.pathname
+
+  return toPath.startsWith('/tv')
 }
 
 export function getPathId(path) {

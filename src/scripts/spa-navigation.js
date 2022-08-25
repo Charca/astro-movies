@@ -4,6 +4,7 @@ import {
   isBackNavigation,
   shouldNotIntercept,
   updateTheDOMSomehow,
+  useTvFragment,
 } from './utils'
 
 navigation.addEventListener('navigate', (navigateEvent) => {
@@ -18,9 +19,11 @@ navigation.addEventListener('navigate', (navigateEvent) => {
 
   switch (navigationType) {
     case 'home-to-movie':
+    case 'tv-to-show':
       handleHomeToMovieTransition(navigateEvent, getPathId(toPath))
       break
     case 'movie-to-home':
+    case 'show-to-tv':
       handleMovieToHomeTransition(navigateEvent, getPathId(fromPath))
       break
     case 'movie-to-person':
@@ -31,6 +34,7 @@ navigation.addEventListener('navigate', (navigateEvent) => {
       )
       break
     case 'person-to-movie':
+    case 'person-to-show':
       handlePersonToMovieTransition(
         navigateEvent,
         getPathId(fromPath),
@@ -44,7 +48,10 @@ navigation.addEventListener('navigate', (navigateEvent) => {
 
 function handleHomeToMovieTransition(navigateEvent, movieId) {
   const handler = async () => {
-    const response = await fetch('/fragments/MovieDetails/' + movieId)
+    const fragmentUrl = useTvFragment(navigateEvent)
+      ? '/fragments/TvDetails'
+      : '/fragments/MovieDetails'
+    const response = await fetch(`${fragmentUrl}/${movieId}`)
     const data = await response.text()
     const transition = document.createDocumentTransition()
     const thumbnail = document.getElementById(`movie-poster-${movieId}`)
@@ -66,7 +73,10 @@ function handleHomeToMovieTransition(navigateEvent, movieId) {
 
 function handleMovieToHomeTransition(navigateEvent, movieId) {
   const handler = async () => {
-    const response = await fetch('/fragments/MovieList')
+    const fragmentUrl = useTvFragment(navigateEvent)
+      ? '/fragments/TvList'
+      : '/fragments/MovieList'
+    const response = await fetch(fragmentUrl)
     const data = await response.text()
     const transition = document.createDocumentTransition()
     const tempHomePage = document.createElement('div')
@@ -157,8 +167,11 @@ function handleMovieToPersonTransition(navigateEvent, movieId, personId) {
 function handlePersonToMovieTransition(navigateEvent, personId, movieId) {
   const isBack = isBackNavigation(navigateEvent)
   const handler = async () => {
+    const fragmentUrl = useTvFragment(navigateEvent)
+      ? '/fragments/TvDetails'
+      : '/fragments/MovieDetails'
     const transition = document.createDocumentTransition()
-    const response = await fetch('/fragments/MovieDetails/' + movieId)
+    const response = await fetch(`${fragmentUrl}/${movieId}`)
     const data = await response.text()
     let thumbnail
     let moviePoster
