@@ -22,38 +22,37 @@
   }
 }
 
-::page-transition-outgoing-image(root) {
+::view-transition-old(root) {
   animation: 90ms cubic-bezier(0.4, 0, 1, 1) both fade-out,
     300ms cubic-bezier(0.4, 0, 0.2, 1) both slide-to-left;
 }
 
-::page-transition-incoming-image(root) {
+::view-transition-new(root) {
   animation: 210ms cubic-bezier(0, 0, 0.2, 1) 90ms both fade-in,
     300ms cubic-bezier(0.4, 0, 0.2, 1) both slide-from-right;
 }
 
-::page-transition-outgoing-image(movie-poster),
-::page-transition-incoming-image(movie-poster) {
+::view-transition-pair(movie-poster) {
   animation: none;
   mix-blend-mode: normal;
 }
 
-::page-transition-image-wrapper(movie-poster) {
+::view-transition-group(movie-poster) {
   isolation: none;
 }
 
 .nav {
-  page-transition-tag: main-header;
+  view-transition-name: main-header;
   contain: paint;
 }
 
 .movie-poster {
-  page-transition-tag: movie-poster;
+  view-transition-name: movie-poster;
   contain: paint;
 }
 
 .person-photo {
-  page-transition-tag: person-photo;
+  view-transition-name: person-photo;
   contain: paint;
 }
 
