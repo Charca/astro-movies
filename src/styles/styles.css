@@ -38,7 +38,7 @@
   mix-blend-mode: normal;
 }
 
-::view-transition-group(movie-poster) {
+::view-transition-image-pair(movie-poster) {
   isolation: none;
 }
 
