@@ -7,7 +7,16 @@ import {
   useTvFragment,
 } from './utils'
 
+// View Transitions support cross-document navigations.
+// Should compare performace.
+// https://github.com/WICG/view-transitions/blob/main/explainer.md#cross-document-same-origin-transitions
+// https://github.com/WICG/view-transitions/blob/main/explainer.md#script-events
+function shouldDisableSpa() {
+  return false;
+}
+
 navigation.addEventListener('navigate', (navigateEvent) => {
+  if (shouldDisableSpa()) return
   if (shouldNotIntercept(navigateEvent)) return
 
   const toUrl = new URL(navigateEvent.destination.url)
@@ -46,118 +55,122 @@ navigation.addEventListener('navigate', (navigateEvent) => {
   }
 })
 
+// TODO: https://developer.chrome.com/docs/web-platform/view-transitions/#transitions-as-an-enhancement
 function handleHomeToMovieTransition(navigateEvent, movieId) {
-  const handler = async () => {
-    const fragmentUrl = useTvFragment(navigateEvent)
-      ? '/fragments/TvDetails'
-      : '/fragments/MovieDetails'
-    const response = await fetch(`${fragmentUrl}/${movieId}`)
-    const data = await response.text()
+  navigateEvent.intercept({
+    async handler() {
+      const fragmentUrl = useTvFragment(navigateEvent)
+        ? '/fragments/TvDetails'
+        : '/fragments/MovieDetails'
+      const response = await fetch(`${fragmentUrl}/${movieId}`)
+      const data = await response.text()
 
-    if (!document.createDocumentTransition) {
-      updateTheDOMSomehow(data)
-      return
-    }
-
-    const transition = document.createDocumentTransition()
-    const thumbnail = document.getElementById(`movie-poster-${movieId}`)
-    if (thumbnail) {
-      thumbnail.style.pageTransitionTag = 'movie-poster'
-    }
-
-    transition.start(() => {
-      if (thumbnail) {
-        thumbnail.style.pageTransitionTag = ''
+      if (!document.startViewTransition) {
+        updateTheDOMSomehow(data);
+        return;
       }
-      document.getElementById('container').scrollTop = 0
-      updateTheDOMSomehow(data)
-    })
-  }
 
-  navigateEvent.transitionWhile(handler())
+      const thumbnail = document.getElementById(`movie-poster-${movieId}`)
+      if (thumbnail) {
+        thumbnail.style.viewTransitionName = 'movie-poster'
+      }
+
+      const transition = document.startViewTransition(() => {
+        if (thumbnail) {
+          thumbnail.style.viewTransitionName = ''
+        }
+        document.getElementById('container').scrollTop = 0
+        updateTheDOMSomehow(data)
+      })
+
+      await transition.finished
+    },
+  })
 }
 
 function handleMovieToHomeTransition(navigateEvent, movieId) {
-  const handler = async () => {
-    const fragmentUrl = useTvFragment(navigateEvent)
-      ? '/fragments/TvList'
-      : '/fragments/MovieList'
-    const response = await fetch(fragmentUrl)
-    const data = await response.text()
+  navigateEvent.intercept({
+    scroll: 'manual',
+    async handler() {
+      const fragmentUrl = useTvFragment(navigateEvent)
+        ? '/fragments/TvList'
+        : '/fragments/MovieList'
+      const response = await fetch(fragmentUrl)
+      const data = await response.text()
 
-    if (!document.createDocumentTransition) {
-      updateTheDOMSomehow(data)
-      return
-    }
+      if (!document.startViewTransition) {
+        updateTheDOMSomehow(data)
+        return
+      }
 
-    const transition = document.createDocumentTransition()
-    const tempHomePage = document.createElement('div')
-    const moviePoster = document.getElementById(`movie-poster`)
-    let thumbnail
+      const tempHomePage = document.createElement('div')
+      const moviePoster = document.getElementById(`movie-poster`)
+      let thumbnail
 
-    // If the movie poster is not in the home page, removes the transition style so that
-    // the poster doesn't stay on the page while transitioning
-    tempHomePage.innerHTML = data
-    if (!tempHomePage.querySelector(`#movie-poster-${movieId}`)) {
-      moviePoster?.classList.remove('movie-poster')
-    }
+      // If the movie poster is not in the home page, removes the transition style so that
+      // the poster doesn't stay on the page while transitioning
+      tempHomePage.innerHTML = data
+      if (!tempHomePage.querySelector(`#movie-poster-${movieId}`)) {
+        moviePoster?.classList.remove('movie-poster')
+      }
 
-    transition
-      .start(() => {
+      const transition = document.startViewTransition(() => {
         updateTheDOMSomehow(data)
 
         thumbnail = document.getElementById(`movie-poster-${movieId}`)
         if (thumbnail) {
           thumbnail.scrollIntoViewIfNeeded()
-          thumbnail.style.pageTransitionTag = 'movie-poster'
+          thumbnail.style.viewTransitionName = 'movie-poster'
         }
       })
-      .then(() => {
-        if (thumbnail) {
-          thumbnail.style.pageTransitionTag = ''
-        }
-      })
-  }
 
-  navigateEvent.transitionWhile(handler())
+      await transition.finished
+
+      if (thumbnail) {
+        thumbnail.style.viewTransitionName = ''
+      }
+    },
+  })
 }
 
 function handleMovieToPersonTransition(navigateEvent, movieId, personId) {
+  // TODO: https://developer.chrome.com/docs/web-platform/view-transitions/#not-a-polyfill
+  // ...has example of `back-transition` class applied to document
   const isBack = isBackNavigation(navigateEvent)
-  const handler = async () => {
-    const response = await fetch('/fragments/PersonDetails/' + personId)
-    const data = await response.text()
 
-    if (!document.createDocumentTransition) {
-      updateTheDOMSomehow(data)
-      return
-    }
+  navigateEvent.intercept({
+    async handler() {
+      const response = await fetch('/fragments/PersonDetails/' + personId)
+      const data = await response.text()
 
-    const transition = document.createDocumentTransition()
-    let personThumbnail
-    let moviePoster
-    let movieThumbnail
-
-    if (!isBack) {
-      // We're transitioning the person photo; we need to remove the transition of the poster
-      // so that it doesn't stay on the page while transitioning
-      moviePoster = document.getElementById(`movie-poster`)
-      if (moviePoster) {
-        moviePoster.classList.remove('movie-poster')
+      if (!document.startViewTransition) {
+        updateTheDOMSomehow(data)
+        return
       }
 
-      personThumbnail = document.getElementById(`person-photo-${personId}`)
-      if (personThumbnail) {
-        personThumbnail.style.pageTransitionTag = 'person-photo'
-      }
-    }
+      let personThumbnail
+      let moviePoster
+      let movieThumbnail
 
-    transition
-      .start(() => {
+      if (!isBack) {
+        // We're transitioning the person photo; we need to remove the transition of the poster
+        // so that it doesn't stay on the page while transitioning
+        moviePoster = document.getElementById(`movie-poster`)
+        if (moviePoster) {
+          moviePoster.classList.remove('movie-poster')
+        }
+
+        personThumbnail = document.getElementById(`person-photo-${personId}`)
+        if (personThumbnail) {
+          personThumbnail.style.viewTransitionName = 'person-photo'
+        }
+      }
+
+      const transition = document.startViewTransition(() => {
         updateTheDOMSomehow(data)
 
         if (personThumbnail) {
-          personThumbnail.style.pageTransitionTag = ''
+          personThumbnail.style.viewTransitionName = ''
         }
 
         if (isBack) {
@@ -166,50 +179,51 @@ function handleMovieToPersonTransition(navigateEvent, movieId, personId) {
           movieThumbnail = document.getElementById(`movie-poster-${movieId}`)
           if (movieThumbnail) {
             movieThumbnail.scrollIntoViewIfNeeded()
-            movieThumbnail.style.pageTransitionTag = 'movie-poster'
+            movieThumbnail.style.viewTransitionName = 'movie-poster'
           }
         }
 
         document.getElementById('container').scrollTop = 0
       })
-      .then(() => {
-        if (movieThumbnail) {
-          movieThumbnail.style.pageTransitionTag = ''
-        }
-      })
-  }
 
-  navigateEvent.transitionWhile(handler())
+      await transition.finished
+
+      if (movieThumbnail) {
+        movieThumbnail.style.viewTransitionName = ''
+      }
+    },
+  })
 }
 
 function handlePersonToMovieTransition(navigateEvent, personId, movieId) {
   const isBack = isBackNavigation(navigateEvent)
-  const handler = async () => {
-    const fragmentUrl = useTvFragment(navigateEvent)
-      ? '/fragments/TvDetails'
-      : '/fragments/MovieDetails'
-    const response = await fetch(`${fragmentUrl}/${movieId}`)
-    const data = await response.text()
 
-    if (!document.createDocumentTransition) {
-      updateTheDOMSomehow(data)
-      return
-    }
+  navigateEvent.intercept({
+    scroll: 'manual',
+    async handler() {
+      const fragmentUrl = useTvFragment(navigateEvent)
+        ? '/fragments/TvDetails'
+        : '/fragments/MovieDetails'
+      const response = await fetch(`${fragmentUrl}/${movieId}`)
+      const data = await response.text()
 
-    const transition = document.createDocumentTransition()
-    let thumbnail
-    let moviePoster
-    let movieThumbnail
-
-    if (!isBack) {
-      movieThumbnail = document.getElementById(`movie-poster-${movieId}`)
-      if (movieThumbnail) {
-        movieThumbnail.style.pageTransitionTag = 'movie-poster'
+      if (!document.startViewTransition) {
+        updateTheDOMSomehow(data)
+        return
       }
-    }
 
-    transition
-      .start(() => {
+      let thumbnail
+      let moviePoster
+      let movieThumbnail
+
+      if (!isBack) {
+        movieThumbnail = document.getElementById(`movie-poster-${movieId}`)
+        if (movieThumbnail) {
+          movieThumbnail.style.viewTransitionName = 'movie-poster'
+        }
+      }
+
+      const transition = document.startViewTransition(() => {
         updateTheDOMSomehow(data)
 
         if (isBack) {
@@ -222,27 +236,27 @@ function handlePersonToMovieTransition(navigateEvent, personId, movieId) {
             thumbnail = document.getElementById(`person-photo-${personId}`)
             if (thumbnail) {
               thumbnail.scrollIntoViewIfNeeded()
-              thumbnail.style.pageTransitionTag = 'person-photo'
+              thumbnail.style.viewTransitionName = 'person-photo'
             }
           }
         } else {
           document.getElementById('container').scrollTop = 0
 
           if (movieThumbnail) {
-            movieThumbnail.style.pageTransitionTag = ''
+            movieThumbnail.style.viewTransitionName = ''
           }
         }
       })
-      .then(() => {
-        if (thumbnail) {
-          thumbnail.style.pageTransitionTag = ''
-        }
 
-        if (moviePoster) {
-          moviePoster.classList.add('movie-poster')
-        }
-      })
-  }
+      await transition.finished
 
-  navigateEvent.transitionWhile(handler())
+      if (thumbnail) {
+        thumbnail.style.viewTransitionName = ''
+      }
+
+      if (moviePoster) {
+        moviePoster.classList.add('movie-poster')
+      }
+    },
+  })
 }
