@@ -1,0 +1,30 @@
+---
+interface Props {
+    open: string;
+    close: string;
+}
+
+const { open, close } = Astro.props;
+---
+
+<div
+    class="bg-black/50 backdrop-blur fixed inset-0 p-4 flex shadow-lg overflow-y-auto z-40" 
+    @click.self={close}
+    x-show={open}
+    x-transition.opacity
+>
+    <div class="m-auto w-full max-w-5xl">
+        <div class="bg-gray-900 rounded">
+            <div class="flex justify-end pr-4 pt-2">
+                <button
+                    @click={close}
+                    @keydown.escape.window={close}
+                    class="text-3xl leading-none hover:text-gray-300">&times;
+                </button>
+            </div>
+            <div class="modal-body px-8 py-8">
+                <slot />
+            </div>
+        </div>
+    </div>
+</div>
