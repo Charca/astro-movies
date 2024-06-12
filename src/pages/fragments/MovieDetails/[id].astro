@@ -32,7 +32,7 @@ const movie = {
 <div class="movie-info border-b border-gray-800">
     <div class="container mx-auto px-4 py-16 flex flex-col md:flex-row">
         <div class="flex-none">
-            <img src={movie.poster_path} alt={`${movie.title} Poster`} class="movie-poster w-64 lg:w-96" id="movie-poster">
+            <img src={movie.poster_path} alt={`${movie.title} Poster`} class="movie-poster w-64 lg:w-96" id="movie-poster" transition:name={`movie-poster-${movie.id}`} >
         </div>
         <div class="md:ml-24">
             <h2 class="text-4xl mt-4 md:mt-0 mb-2 font-semibold">{movie.title}</h2>
@@ -73,11 +73,13 @@ const movie = {
                         </button>
                     </div>
 
+                    <!--
                     <Modal open="isOpen" close="isOpen = false">
                         <div class="responsive-container overflow-hidden relative" style="padding-top: 56.25%">
                             <iframe class="responsive-iframe absolute top-0 left-0 w-full h-full" src={`https://www.youtube.com/embed/${movie.videos.results[0].key}`} style="border:0;" allow="autoplay; encrypted-media" allowfullscreen></iframe>
                         </div>
                     </Modal>
+                    -->
                 )}
             </div>
 
@@ -92,7 +94,7 @@ const movie = {
         {movie.cast.map(cast => (
             <div class="mt-8">
                 <a href={`/people/${cast.id}`}>
-                    <img id={`person-photo-${cast.id}`} src={cast.profile_path} alt={cast.name} class="thumbnail hover:opacity-75 transition ease-in-out duration-150">
+                    <img id={`person-photo-${cast.id}`} src={cast.profile_path} alt={cast.name} class="thumbnail hover:opacity-75 transition ease-in-out duration-150" transition:name={`person-${cast.id}`}>
                 </a>
                 <div class="mt-2">
                     <a href={`/people/${cast.id}`} class="text-lg mt-2 hover:text-gray:300">{cast.name}</a>
@@ -124,9 +126,10 @@ const movie = {
                 </div>
         ))}
         </div>
-
+        <!--
         <Modal open="isOpen" close="isOpen = false">
             <img :src="image" alt="poster">
         </Modal>
+        -->
     </div>
 </div> <!-- end movie-images -->

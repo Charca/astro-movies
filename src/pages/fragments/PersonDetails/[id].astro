@@ -19,7 +19,16 @@ const person = {
 
 const castMovies = profileData.combined_credits.cast || []
 
-const knownFor = castMovies.sort((a, b) => b.popularity - a.popularity).slice(0, 5).map(movie => {
+
+const knownFor = castMovies.sort((a, b) => {
+  if (a.media_type === 'movie' && b.media_type !== 'movie') {
+    return -1;
+  } else if (a.media_type !== 'movie' && b.media_type === 'movie') {
+    return 1;
+  } else {
+    return b.popularity - a.popularity;
+  }
+}).slice(0, 5).map(movie => {
   const title = movie.title || movie.name || 'Untitled';
 
   return {
@@ -61,7 +70,7 @@ function calculateAge(birthday) {
 <div class="movie-info border-b border-gray-800">
   <div class="container mx-auto px-4 py-16 flex flex-col md:flex-row">
       <div class="flex-none">
-          <img src={person.profile_path} alt={person.name} class="person-photo w-76" id="person-photo">
+          <img src={person.profile_path} alt={person.name} class="person-photo w-76" id="person-photo" transition:name={`person-${person.id}`}>
           <ul class="flex items-center mt-4">
 
               {social.facebook_id && (
@@ -110,14 +119,16 @@ function calculateAge(birthday) {
 
           <h4 class="font-semibold mt-12">Known For</h4>
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-8">
-              {knownFor.map(movie => (
-                <div class="mt-4">
-                  <a href={movie.linkToPage}>
-                    <img src={movie.poster_path} alt={movie.title} class="thumbnail hover:opacity-75 transition ease-in-out duration-150" id={`movie-poster-${movie.id}`}>
-                  </a>
-                  <a href={movie.linkToPage} class="text-sm leading-normal block text-gray-400 hover:text-white mt-1">{movie.title}</a>
-                </div>
-              ))}
+              {Array.from(new Set(knownFor.map(movie => movie.id)))
+                .map(id => knownFor.find(movie => movie.id === id))
+                .map(movie => (
+                  <div class="mt-4">
+                    <a href={movie.linkToPage}>
+                      <img src={movie.poster_path} alt={movie.title} class="thumbnail hover:opacity-75 transition ease-in-out duration-150" id={`movie-poster-${movie.id}`} transition:name={`movie-poster-${movie.id}`}>
+                    </a>
+                    <a href={movie.linkToPage} class="text-sm leading-normal block text-gray-400 hover:text-white mt-1">{movie.title}</a>
+                  </div>
+                ))}
           </div>
       </div>
   </div>
